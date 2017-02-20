@@ -70,7 +70,12 @@ app.on("ready", function() {
             return;
         }
         browserInitialized = true;
-        var mainWindow = new BrowserWindow({ });
+        var mainWindow = new BrowserWindow({
+            // https://www.npmjs.com/package/electron-browser-window-options
+            webPreferences: {
+                nodeIntegration: false
+            }
+        });
         mainWindow.loadURL(url);
         mainWindow.on("closed", function() {
             childProc.kill();

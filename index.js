@@ -9,7 +9,7 @@ function ChildProcess() {
     self.handle = null;
     self.start = function(cmd, args) {
         console.info("LAUNCHING: " + cmd + " " + args.join(" "));
-        self.handle = spawn(cmd, args || []);
+        self.handle = spawn(cmd, args || [], {detached:true});
         
         self.handle.stdout.on("data", function(data) {
             VERBOSITY > 0 && process.stdout.write(data);
@@ -24,7 +24,8 @@ function ChildProcess() {
     };
     self.kill = function() {
         if(self.handle) {
-            self.handle.kill();
+            process.kill(-self.handle.pid)
+            self.handle = null;
         }
     };
 }

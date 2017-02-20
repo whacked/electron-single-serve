@@ -1,0 +1,17 @@
+* what it does
+
+launch a process (like a local webdev server) and open an electron =BrowserWindow= to it
+
+* usage
+
+#+BEGIN_SRC sh
+http://localhost:8000 python -m SimpleHTTPServer
+#+END_SRC
+
+* why?
+
+and how is this different from running =python -m SimpleHTTPServer= and opening [[http://localhost:8000]] in the browser?
+
+it's not; in fact it's probably worse, because =BrowserWindow= lacks basic browser functions.
+
+but it saves you a few steps :-)))

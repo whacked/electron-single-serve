@@ -3,5 +3,9 @@
   "version": "0.0.1",
   "main": "index.js",
   "repository": {},
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "electron-in-page-search": "^1.2.3",
+    "electron-localshortcut": "^1.0.0"
+  }
 }

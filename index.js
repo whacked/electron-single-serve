@@ -1,8 +1,11 @@
-const {app, BrowserWindow} = require("electron");
+const {app, remote, BrowserWindow, ipcMain} = require("electron");
+const electronLocalshortcut = require('electron-localshortcut');
 const {spawn} = require("child_process");
+const path = require("path");
+const url = require("url");
 const http = require("http");
-
-var VERBOSITY = 1;
+const searchInPage = require("electron-in-page-search").default; 
+var VERBOSITY = 11;
 
 function ChildProcess() {
     var self = this;
@@ -54,7 +57,7 @@ app.on("ready", function() {
         process.exit();
     }
 
-    var url      = urlMatch[0],
+    var location = urlMatch[0],
         protocol = urlMatch[1],
         host     = urlMatch[2],
         port     = urlMatch[3];
@@ -70,16 +73,27 @@ app.on("ready", function() {
             return;
         }
         browserInitialized = true;
-        var mainWindow = new BrowserWindow({
-            // https://www.npmjs.com/package/electron-browser-window-options
-            webPreferences: {
-                nodeIntegration: false
-            }
+        var mainWindow = new BrowserWindow({});
+        indexhtml = url.format({
+            pathname: path.join(__dirname, "index.html"),
+            protocol: "file:",
+            slashes: true
         });
-        mainWindow.loadURL(url);
+        mainWindow.loadURL(indexhtml);
+        mainWindow.webContents.openDevTools();
         mainWindow.on("closed", function() {
             childProc.kill();
         });
+        mainWindow.webContents.on("did-finish-load", function() {
+            mainWindow.webContents.send("loadurl", location);
+        });
+
+        electronLocalshortcut.register(mainWindow, "CommandOrControl+S", function() {
+            mainWindow.webContents.send("trigger", "startsearch");
+        });
+        electronLocalshortcut.register(mainWindow, "CommandOrControl+X", function() {
+            mainWindow.webContents.send("trigger", "stopsearch");
+        })
     }
 
     var checkHandle = setInterval(function() {

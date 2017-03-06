@@ -1,10 +1,13 @@
-const {app, remote, BrowserWindow, ipcMain} = require("electron");
-const electronLocalshortcut = require('electron-localshortcut');
-const {spawn} = require("child_process");
-const path = require("path");
-const url = require("url");
-const http = require("http");
-const searchInPage = require("electron-in-page-search").default; 
+const APP_NAME = "electron-single-serve";
+
+const path = require("path"),
+      url = require("url"),
+      electronLocalshortcut = require('electron-localshortcut'),
+      {app, remote, BrowserWindow, ipcMain} = require("electron"),
+      {spawn} = require("child_process"),
+      searchInPage = require("electron-in-page-search").default,
+      http = require("http");
+
 var VERBOSITY = 11;
 
 function ChildProcess() {
@@ -32,6 +35,8 @@ function ChildProcess() {
         }
     };
 }
+
+globals = {};
 
 app.on("window-all-closed", function() {
     app.quit();
@@ -74,6 +79,7 @@ app.on("ready", function() {
         }
         browserInitialized = true;
         var mainWindow = new BrowserWindow({});
+        globals.mainWindow = mainWindow;
         indexhtml = url.format({
             pathname: path.join(__dirname, "index.html"),
             protocol: "file:",
@@ -109,3 +115,50 @@ app.on("ready", function() {
         });
     }, 1000);
 });
+
+// <ipc server setup>
+const socket_connector = require("node-ipc-socket-connector");
+const ipc = require("node-ipc"),
+      fs = require("fs");
+
+socket_connector.util.ipc_set_default_config(ipc.config);
+socket_connector.util.ensure_socket_master_dir(APP_NAME)
+ipc.config.appspace = APP_NAME;
+ipc.config.socketRoot = socket_connector.util.make_socket_root(APP_NAME);
+
+ipc.serve(
+        ipc.config.socketRoot,
+        () => {
+            ipc.server.on(
+                "get:appidentity",
+                (data, socket) => {
+                    ipc.server.emit(socket,
+                        "appidentity",
+                        {
+                            id: ipc.config.id,
+                            message: APP_NAME
+                        }
+                    );
+                }
+            );
+            ipc.server.on(
+                "loadurl",
+                (data, socket) => {
+                    globals.mainWindow.webContents.send("loadurl", data.message);
+                }
+            );
+});
+
+new Array("SIGINT", "exit")
+        .forEach(evtname => {
+    process.on(evtname, () => {
+        var spath = ipc.config.socketRoot;
+        if(fs.existsSync(spath)) {
+            fs.unlinkSync(spath);
+        }
+        process.exit();
+    });
+})
+
+ipc.server.start();
+// </ipc server>

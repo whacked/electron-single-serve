@@ -1,5 +1,3 @@
-const APP_NAME = "electron-single-serve";
-
 const path = require("path"),
       url = require("url"),
       electronLocalshortcut = require('electron-localshortcut'),
@@ -9,6 +7,8 @@ const path = require("path"),
       http = require("http");
 
 var VERBOSITY = 11;
+
+const APP_NAME_PREFIX = 'elss-';
 
 function ChildProcess() {
     var self = this;
@@ -36,38 +36,47 @@ function ChildProcess() {
     };
 }
 
-globals = {};
+var globals = {};
 
+///////////////
+// main proc //
+///////////////
+
+// PARSE CLI ARGS
+// first is running binary, second is script;
+// for electron, first is path to electron,
+// second is *probably* '.' = PWD
+var ARGV = process.argv.slice(2);
+if(ARGV.length < 3) {
+    console.info("usage: URL CMD [ARG1 ARG2 ...]\n");
+    console.info("full example: electron . http://localhost:8000 python -m SimpleHTTPServer\n");
+    process.exit();
+}
+
+const urlMatcher = /(http|https):\/\/([^:]+)(?:\:(\d+))?/;
+
+urlMatch = ARGV[0].match(urlMatcher);
+if(!urlMatch) {
+    console.info("did not recognize '"+ARGV[0]+"' as a valid URL");
+    process.exit();
+}
+
+var location = urlMatch[0],
+    protocol = urlMatch[1],
+    host     = urlMatch[2],
+    port     = urlMatch[3];
+var cmd = ARGV[1],
+    cmdArgs = ARGV.slice(2);
+
+const APP_NAME = APP_NAME_PREFIX+host+':'+port;
+
+
+// ELECTRON SETUP
 app.on("window-all-closed", function() {
     app.quit();
 });
 
 app.on("ready", function() {
-
-    // first is running binary, second is script;
-    // for electron, first is path to electron,
-    // second is *probably* '.' = PWD
-    var ARGV = process.argv.slice(2);
-    if(ARGV.length < 3) {
-        console.info("usage: URL CMD [ARG1 ARG2 ...]\n");
-        console.info("full example: electron . http://localhost:8000 python -m SimpleHTTPServer\n");
-        process.exit();
-    }
-
-    const urlMatcher = /(http|https):\/\/([^:]+)(?:\:(\d+))?/;
-
-	urlMatch = ARGV[0].match(urlMatcher);
-    if(!urlMatch) {
-        console.info("did not recognize '"+ARGV[0]+"' as a valid URL");
-        process.exit();
-    }
-
-    var location = urlMatch[0],
-        protocol = urlMatch[1],
-        host     = urlMatch[2],
-        port     = urlMatch[3];
-    var cmd = ARGV[1],
-        cmdArgs = ARGV.slice(2);
 
     var childProc = new ChildProcess();
     childProc.start(cmd, cmdArgs);
